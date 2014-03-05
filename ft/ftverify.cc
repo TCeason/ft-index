@@ -472,7 +472,7 @@ main(int argc, char const * const argv[])
         fflush(stderr);
         abort();
     }
-    outf = fopen(outfname, "w");
+    outf = toku_os_fopen(outfname, "w");
     if (!outf) {
         perror(outfname);
         fflush(stderr);

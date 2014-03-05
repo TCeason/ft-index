@@ -130,7 +130,7 @@ void toku_logcursor_print(TOKULOGCURSOR lc)  {
 static int lc_close_cur_logfile(TOKULOGCURSOR lc) {
     int r=0;
     if ( lc->is_open ) {
-        r = fclose(lc->cur_fp);
+        r = toku_os_fclose(lc->cur_fp);
         assert(0==r);
         lc->is_open = false;
     }
@@ -164,7 +164,7 @@ static int lc_open_logfile(TOKULOGCURSOR lc, int index) {
     assert( !lc->is_open );
     if( index == -1 || index >= lc->n_logfiles) return DB_NOTFOUND;
     lc_catfile(lc->logfiles[index], lc->buffer, lc->buffer_size);
-    lc->cur_fp = fopen(lc->logfiles[index], "rb");
+    lc->cur_fp = toku_os_fopen(lc->logfiles[index], "rb");
     if ( lc->cur_fp == NULL ) 
         return DB_NOTFOUND;
     r = setvbuf(lc->cur_fp, (char *) lc->buffer, _IOFBF, lc->buffer_size);
