@@ -196,7 +196,7 @@ test_split_on_boundary(void)
 {
     struct ftnode sn;
 
-    int fd = open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
+    int fd = toku_os_open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
 
     int r;
 
@@ -255,7 +255,7 @@ test_split_with_everything_on_the_left(void)
 {
     struct ftnode sn;
 
-    int fd = open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
+    int fd = toku_os_open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
 
     int r;
 
@@ -323,7 +323,7 @@ test_split_on_boundary_of_last_node(void)
 {
     struct ftnode sn;
 
-    int fd = open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
+    int fd = toku_os_open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
 
     int r;
 
@@ -384,7 +384,7 @@ test_split_at_begin(void)
 {
     struct ftnode sn;
 
-    int fd = open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
+    int fd = toku_os_open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
 
     int r;
 
@@ -448,7 +448,7 @@ test_split_at_end(void)
 {
     struct ftnode sn;
 
-    int fd = open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
+    int fd = toku_os_open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
 
     int r;
 
@@ -514,7 +514,7 @@ test_split_odd_nodes(void)
 {
     struct ftnode sn;
 
-    int fd = open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO);
+    int fd = toku_os_open(fname, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO);
     assert(fd >= 0);
 
     int r;

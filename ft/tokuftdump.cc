@@ -598,7 +598,7 @@ main (int argc, const char *const argv[]) {
     invariant_zero(r);
 
     const char *n = argv[0];
-    int f = open(n, O_RDWR + O_BINARY);  assert(f>=0);
+    int f = toku_os_open(n, O_RDWR + O_BINARY, 0);  assert(f>=0);
     FT ft;
     // create a cachefile for the header
     toku_cachetable_create(&ct, 1<<25, (LSN){0}, 0);

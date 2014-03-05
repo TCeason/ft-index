@@ -365,7 +365,7 @@ test_prefetching(void) {
     //    struct ft_handle source_ft;
     struct ftnode sn;
 
-    int fd = open(TOKU_TEST_FILENAME, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
+    int fd = toku_os_open(TOKU_TEST_FILENAME, O_RDWR|O_CREAT|O_BINARY, S_IRWXU|S_IRWXG|S_IRWXO); assert(fd >= 0);
 
     int r;
 
@@ -464,7 +464,7 @@ test_prefetching(void) {
     toku_free(ft);
     toku_free(ndd);
 
-    r = close(fd); assert(r != -1);
+    r = toku_os_close(fd); assert(r != -1);
 }
 
 int

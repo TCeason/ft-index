@@ -148,14 +148,14 @@ static toku_off_t lc_file_len(const char *name) {
 // and makes subsequent accesses to it fast.  The intention is to speed up backward scans of the
 // file.
 static void lc_catfile(const char *fname, void *buffer, size_t buffer_size) {
-    int fd = open(fname, O_RDONLY);
+    int fd = toku_os_open(fname, O_RDONLY, 0);
     if (fd >= 0) {
         while (1) {
             ssize_t r = read(fd, buffer, buffer_size);
             if ((int)r <= 0)
                 break;
         }
-        close(fd);
+        toku_os_close(fd);
     }
 }
 

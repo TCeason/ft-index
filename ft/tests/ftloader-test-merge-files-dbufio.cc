@@ -210,7 +210,7 @@ bad_open(const char *path, int oflag, int mode) {
 	errno = EINVAL;
 	rval = -1;
     } else {
-	rval = open(path, oflag, mode);
+	rval = toku_os_open(path, oflag, mode);
     }
     return rval;
 }
@@ -365,7 +365,7 @@ static void test (const char *directory, bool is_error) {
     int *XMALLOC_N(N_SOURCES, n_records_in_fd);
     for (int i=0; i<N_SOURCES; i++) {
 	fnames[i] = make_fname(directory, "temp", i);
-	fds[i] = open(fnames[i], O_CREAT|O_RDWR, S_IRWXU);
+	fds[i] = toku_os_open(fnames[i], O_CREAT|O_RDWR, S_IRWXU);
 	assert(fds[i]>=0);
 	n_records_in_fd[i] = 0;
     }

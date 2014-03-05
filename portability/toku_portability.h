@@ -208,6 +208,8 @@ extern "C" {
 #    pragma poison   dup2
 #    pragma poison   _dup2
 #   else
+int      open(const char *path, int flag, ...)       __attribute__((__deprecated__));
+int      close(int fd)                              __attribute__((__deprecated__));
 int      creat(const char *pathname, mode_t mode)   __attribute__((__deprecated__));
 int      fstat(int fd, struct stat *buf)            __attribute__((__deprecated__));
 int      stat(const char *path, struct stat *buf)   __attribute__((__deprecated__));
