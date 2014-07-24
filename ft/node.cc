@@ -1833,6 +1833,47 @@ ft_leaf_gc_all_les(FT ft, FTNODE node, txn_gc_info *gc_info)
     }
 }
 
+static int ft_leaf_empty_basements(FTNODE node) {
+    int n_empty = 0;
+    for (int i = 0; i < node->n_children; i++) {
+        BASEMENTNODE bn = BLB(node, i);
+        if (bn->data_buffer.num_klpairs() == 0) {
+            n_empty++;
+        }
+    }
+    return n_empty;
+}
+
+static void ft_leaf_prune_empty_basements(FTNODE node) {
+    int i = 0;
+    while (i < node->n_children-1) {
+        BASEMENTNODE bn = BLB(node, i);
+        if (bn->data_buffer.num_klpairs() == 0) {
+            // remove pivot(i)
+            node->pivotkeys.delete_at(i);
+            // remove basement(i)
+            memmove(&node->bp[i], &node->bp[i+1], (node->n_children-1-i)*sizeof (node->bp[0]));
+            // destroy basement(i)
+            destroy_basement_node(bn);
+            node->n_children -= 1;
+        } else {
+            i++;
+        }
+    }
+}
+
+static void ft_leaf_maybe_prune_empty_basements(FT ft UU(), FTNODE node) {
+    int n_empty = ft_leaf_empty_basements(node);
+    if (n_empty > 0) {
+        fprintf(stderr, "%s:%u %" PRIi64 " prune %d %d\n", __FUNCTION__, __LINE__, node->blocknum.b, n_empty, node->n_children);
+        if (n_empty > 0 && node->n_children > 1) {
+            ft_leaf_prune_empty_basements(node);
+            n_empty = ft_leaf_empty_basements(node);
+            fprintf(stderr, "%s:%u %" PRIi64 " after %d %d\n", __FUNCTION__, __LINE__, node->blocknum.b, n_empty, node->n_children);
+        }
+    }
+}
+
 void toku_ftnode_leaf_run_gc(FT ft, FTNODE node) {
     TOKULOGGER logger = toku_cachefile_logger(ft->cf);
     if (logger) {
@@ -1861,6 +1902,7 @@ void toku_ftnode_leaf_run_gc(FT ft, FTNODE node) {
                             node->oldest_referenced_xid_known,
                             true);
         ft_leaf_gc_all_les(ft, node, &gc_info);
+        ft_leaf_maybe_prune_empty_basements(ft, node);
     }
 }
 
