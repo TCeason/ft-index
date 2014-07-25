@@ -1838,6 +1838,7 @@ static int ft_leaf_empty_basements(FTNODE node) {
     for (int i = 0; i < node->n_children; i++) {
         BASEMENTNODE bn = BLB(node, i);
         if (bn->data_buffer.num_klpairs() == 0) {
+            fprintf(stderr, "%s:%u %" PRId64 " empty %d %d\n", __FUNCTION__, __LINE__, node->blocknum.b, i, node->n_children);
             n_empty++;
         }
     }
@@ -1849,15 +1850,20 @@ static void ft_leaf_prune_empty_basements(FTNODE node) {
     while (i < node->n_children-1) {
         BASEMENTNODE bn = BLB(node, i);
         if (bn->data_buffer.num_klpairs() == 0) {
-            // remove pivot(i)
             node->pivotkeys.delete_at(i);
-            // remove basement(i)
             memmove(&node->bp[i], &node->bp[i+1], (node->n_children-1-i)*sizeof (node->bp[0]));
-            // destroy basement(i)
             destroy_basement_node(bn);
             node->n_children -= 1;
         } else {
             i++;
+        }
+    }
+    if (node->n_children > 1) {
+        BASEMENTNODE bn = BLB(node, node->n_children-1);
+        if (bn->data_buffer.num_klpairs() == 0) {
+            node->pivotkeys.delete_at(node->n_children-2);
+            destroy_basement_node(bn);
+            node->n_children -= 1;
         }
     }
 }
