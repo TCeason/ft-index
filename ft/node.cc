@@ -1833,6 +1833,7 @@ ft_leaf_gc_all_les(FT ft, FTNODE node, txn_gc_info *gc_info)
     }
 }
 
+// Return the number of empty basements in this node
 static int ft_leaf_empty_basements(FTNODE node) {
     int n_empty = 0;
     for (int i = 0; i < node->n_children; i++) {
@@ -1845,25 +1846,26 @@ static int ft_leaf_empty_basements(FTNODE node) {
     return n_empty;
 }
 
+// Prune empty basements from the node.
 static void ft_leaf_prune_empty_basements(FTNODE node) {
-    int i = 0;
-    while (i < node->n_children-1) {
+    for (int i = 0; i < node->n_children; ) {
+        if (node->n_children <= 1) { // there must be at least one basement node
+            break;
+        }
         BASEMENTNODE bn = BLB(node, i);
         if (bn->data_buffer.num_klpairs() == 0) {
-            node->pivotkeys.delete_at(i);
-            memmove(&node->bp[i], &node->bp[i+1], (node->n_children-1-i)*sizeof (node->bp[0]));
+            if (i == node->n_children-1) {
+                // delete the last pivot
+                node->pivotkeys.delete_at(i-1); 
+            } else {
+                // delete the i'th pivot
+                node->pivotkeys.delete_at(i);
+                memmove(&node->bp[i], &node->bp[i+1], (node->n_children-1-i)*sizeof (node->bp[0]));
+            }
             destroy_basement_node(bn);
             node->n_children -= 1;
         } else {
             i++;
-        }
-    }
-    if (node->n_children > 1) {
-        BASEMENTNODE bn = BLB(node, node->n_children-1);
-        if (bn->data_buffer.num_klpairs() == 0) {
-            node->pivotkeys.delete_at(node->n_children-2);
-            destroy_basement_node(bn);
-            node->n_children -= 1;
         }
     }
 }
