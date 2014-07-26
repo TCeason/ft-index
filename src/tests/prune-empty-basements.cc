@@ -94,12 +94,12 @@ PATENT RIGHTS GRANT:
 
 #include "test.h"
 #include <endian.h>
-#ifndef htobe63
+#ifndef htobe64
 #include <byteswap.h>
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define htobe64(x) __bswap_64(x)
 #else
-#define htobe63(x) (x)
+#define htobe64(x) (x)
 #endif
 #endif
 
