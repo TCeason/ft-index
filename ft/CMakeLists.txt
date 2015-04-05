@@ -60,6 +60,8 @@ set(FT_SOURCES
   serialize/ft-node-deserialize
   serialize/ft-serialize
   serialize/quicklz
+  serialize/zstd/fse
+  serialize/zstd/zstd
   serialize/sub_block
   txn/rollback
   txn/rollback-apply

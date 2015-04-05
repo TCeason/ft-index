@@ -97,6 +97,7 @@ PATENT RIGHTS GRANT:
 #include "compress.h"
 #include "memory.h"
 #include "quicklz.h"
+#include "zstd/zstd.h"
 #include "toku_assert.h"
 
 static inline enum toku_compression_method
@@ -129,6 +130,8 @@ size_t toku_compress_bound (enum toku_compression_method a, size_t size)
         return compressBound (size);
     case TOKU_ZLIB_WITHOUT_CHECKSUM_METHOD:
         return 2+deflateBound(nullptr, size); // We need one extra for the rfc1950-style header byte, and one extra to store windowBits (a bit over cautious about future upgrades maybe).
+    case TOKU_ZSTD_METHOD:
+        return 1 + ZSTD_compressBound(size);
     default:
         break;
     }
@@ -219,6 +222,20 @@ void toku_compress (enum toku_compression_method a,
         dest[1] = zlib_without_checksum_windowbits;
         return;
     }
+    case TOKU_ZSTD_METHOD: {
+        if (sourceLen == 0) {
+            // requires at least one byte, so we handle this ourselves
+            assert(1 <= *destLen);
+            *destLen = 1;
+        } else {
+            size_t actual_len = ZSTD_compress((void*)(dest + 1), *destLen - 1, source, sourceLen);
+            assert(!ZSTD_isError(actual_len));
+            *destLen = actual_len + 1;
+        }
+        // Fill in that first byte
+        dest[0] = TOKU_ZSTD_METHOD;
+        return;
+    }
     default:
         break;
     }
@@ -287,6 +304,11 @@ void toku_decompress (Bytef       *dest,   uLongf destLen,
         lazy_assert(r == Z_STREAM_END);
         r = inflateEnd(&strm);
         lazy_assert(r == Z_OK);
+        return;
+    }
+    case TOKU_ZSTD_METHOD: {
+        size_t actual_len = ZSTD_decompress((void*)dest, destLen, (void*)(source + 1), sourceLen - 1);
+        assert(!ZSTD_isError(actual_len));
         return;
     }
     }
