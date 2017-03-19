@@ -213,6 +213,7 @@ struct txn_lt_key_ranges {
 };
 
 struct __toku_db_txn_internal {
+    uint64_t magic;
     struct tokutxn *tokutxn;
     uint32_t flags;
     TOKU_ISOLATION iso;

@@ -50,8 +50,17 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
 #include "ydb_txn.h"
 #include "ydb_row_lock.h"
 
+#define TOKU_TXN_MAGIC 0x746f6b7574786e
+
+static void toku_txn_verify(DB_TXN *txn) {
+    if (txn) {
+        assert(db_txn_struct_i(txn)->magic == TOKU_TXN_MAGIC);
+    }
+}
+
 static uint64_t toku_txn_id64(DB_TXN * txn) {
     HANDLE_PANICKED_ENV(txn->mgrp);
+    toku_txn_verify(txn);
     return toku_txn_get_root_id(db_txn_struct_i(txn)->tokutxn);
 }
 
@@ -76,6 +85,7 @@ static void toku_txn_destroy(DB_TXN *txn) {
     db_txn_struct_i(txn)->lt_map.destroy();
     toku_txn_destroy_txn(db_txn_struct_i(txn)->tokutxn);
     toku_mutex_destroy(&db_txn_struct_i(txn)->txn_mutex);
+    db_txn_struct_i(txn)->magic = 0;
     toku_free(txn);
 }
 
@@ -83,6 +93,7 @@ static int toku_txn_commit(DB_TXN * txn, uint32_t flags,
                            TXN_PROGRESS_POLL_FUNCTION poll, void *poll_extra,
                            bool release_mo_lock, bool low_priority) {
     HANDLE_PANICKED_ENV(txn->mgrp);
+    toku_txn_verify(txn);
     //Recursively kill off children
     if (db_txn_struct_i(txn)->child) {
         //commit of child sets the child pointer to NULL
@@ -156,6 +167,7 @@ cleanup:
 static int toku_txn_abort(DB_TXN * txn,
                           TXN_PROGRESS_POLL_FUNCTION poll, void *poll_extra) {
     HANDLE_PANICKED_ENV(txn->mgrp);
+    toku_txn_verify(txn);
     //Recursively kill off children (abort or commit are both correct, commit is cheaper)
     if (db_txn_struct_i(txn)->child) {
         //commit of child sets the child pointer to NULL
@@ -191,6 +203,7 @@ static int toku_txn_xa_prepare (DB_TXN *txn, TOKU_XA_XID *xid, uint32_t flags) {
         r = EINVAL;
         goto exit;
     }
+    toku_txn_verify(txn);
     if (txn->parent) {
         r = 0; // make this a NO-OP, MySQL calls this
         goto exit;
@@ -240,6 +253,7 @@ exit:
 // requires: must hold the multi operation lock. it is
 //           released in toku_txn_xa_prepare before the fsync.
 static int toku_txn_prepare (DB_TXN *txn, uint8_t gid[DB_GID_SIZE], uint32_t flags) {
+    toku_txn_verify(txn);
     TOKU_XA_XID xid;
     TOKU_ANNOTATE_NEW_MEMORY(&xid, sizeof(xid));
     xid.formatID=0x756b6f54; // "Toku"
@@ -250,6 +264,7 @@ static int toku_txn_prepare (DB_TXN *txn, uint8_t gid[DB_GID_SIZE], uint32_t fla
 }
 
 static int toku_txn_txn_stat (DB_TXN *txn, struct txn_stat **txn_stat) {
+    toku_txn_verify(txn);
     XMALLOC(*txn_stat);
     return toku_logger_txn_rollback_stats(db_txn_struct_i(txn)->tokutxn, *txn_stat);
 }
@@ -261,6 +276,7 @@ static int locked_txn_txn_stat (DB_TXN *txn, struct txn_stat **txn_stat) {
 
 static int locked_txn_commit_with_progress(DB_TXN *txn, uint32_t flags,
                                            TXN_PROGRESS_POLL_FUNCTION poll, void* poll_extra) {
+    toku_txn_verify(txn);
     bool holds_mo_lock = false;
     bool low_priority = false;
     TOKUTXN tokutxn = db_txn_struct_i(txn)->tokutxn;
@@ -285,6 +301,7 @@ static int locked_txn_commit_with_progress(DB_TXN *txn, uint32_t flags,
 
 static int locked_txn_abort_with_progress(DB_TXN *txn,
                                           TXN_PROGRESS_POLL_FUNCTION poll, void* poll_extra) {
+    toku_txn_verify(txn);
     // cannot begin a checkpoint
     // the multi operation lock is taken the first time we
     // see a non-readonly txn in the abort (or recursive commit).
@@ -324,10 +341,12 @@ int locked_txn_abort(DB_TXN *txn) {
 }
 
 static void locked_txn_set_client_id(DB_TXN *txn, uint64_t client_id) {
+    toku_txn_verify(txn);
     toku_txn_set_client_id(db_txn_struct_i(txn)->tokutxn, client_id);
 }
 
 static uint64_t locked_txn_get_client_id(DB_TXN *txn) {
+    toku_txn_verify(txn);
     return toku_txn_get_client_id(db_txn_struct_i(txn)->tokutxn);
 }
 
@@ -335,6 +354,7 @@ static int toku_txn_discard(DB_TXN *txn, uint32_t flags) {
     // check parameters
     if (flags != 0)
         return EINVAL;
+    toku_txn_verify(txn);
     TOKUTXN ttxn = db_txn_struct_i(txn)->tokutxn;
     if (toku_txn_get_state(ttxn) != TOKUTXN_PREPARING)
         return EINVAL;
@@ -370,6 +390,7 @@ static int toku_txn_discard(DB_TXN *txn, uint32_t flags) {
 }
 
 static bool toku_txn_is_prepared(DB_TXN *txn) {
+    toku_txn_verify(txn);
     TOKUTXN ttxn = db_txn_struct_i(txn)->tokutxn;
     return toku_txn_get_state(ttxn) == TOKUTXN_PREPARING;
 }
@@ -419,6 +440,7 @@ static inline void txn_func_init(DB_TXN *txn) {
 int toku_txn_begin(DB_ENV *env, DB_TXN * stxn, DB_TXN ** txn, uint32_t flags) {
     HANDLE_PANICKED_ENV(env);
     HANDLE_ILLEGAL_WORKING_PARENT_TXN(env, stxn); //Cannot create child while child already exists.
+    toku_txn_verify(stxn);
     if (!toku_logger_is_open(env->i->logger)) 
         return toku_ydb_do_error(env, EINVAL, "Environment does not have logging enabled\n");
     if (!(env->i->open_flags & DB_INIT_TXN))  
@@ -536,6 +558,7 @@ int toku_txn_begin(DB_ENV *env, DB_TXN * stxn, DB_TXN ** txn, uint32_t flags) {
     txn_func_init(result);
 
     result->parent = stxn;
+    db_txn_struct_i(result)->magic = TOKU_TXN_MAGIC;
     db_txn_struct_i(result)->flags = txn_flags;
     db_txn_struct_i(result)->iso = child_isolation;
     db_txn_struct_i(result)->lt_map.create_no_array();
@@ -598,6 +621,7 @@ void toku_keep_prepared_txn_callback (DB_ENV *env, TOKUTXN tokutxn) {
     
     result->parent = NULL;
 
+    db_txn_struct_i(result)->magic = TOKU_TXN_MAGIC;
     db_txn_struct_i(result)->tokutxn = tokutxn;
     db_txn_struct_i(result)->lt_map.create();
 
@@ -612,6 +636,7 @@ void toku_increase_last_xid(DB_ENV *env, uint64_t increment) {
 }
 
 bool toku_is_big_txn(DB_TXN *txn) {
+    toku_txn_verify(txn);
     return toku_is_big_tokutxn(db_txn_struct_i(txn)->tokutxn);
 }
 
