@@ -69,7 +69,7 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
 #include <sys/stat.h>
 #include <stdio.h>
 
-#if __FreeBSD__
+#if defined(__FreeBSD__)
 #include <stdarg.h>
 #endif
 
@@ -157,7 +157,7 @@ extern "C" {
 #endif
 
 // Deprecated functions.
-#if !defined(TOKU_ALLOW_DEPRECATED)
+#if !defined(TOKU_ALLOW_DEPRECATED) && !defined(__clang__)
 int      creat(const char *pathname, mode_t mode)   __attribute__((__deprecated__));
 int      fstat(int fd, struct stat *buf)            __attribute__((__deprecated__));
 int      stat(const char *path, struct stat *buf)   __attribute__((__deprecated__));

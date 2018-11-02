@@ -356,7 +356,6 @@ int toku_cachetable_get_and_pin_with_dep_pairs (
     CACHEKEY key,
     uint32_t fullhash,
     void**value,
-    long *sizep,
     CACHETABLE_WRITE_CALLBACK write_callback,
     CACHETABLE_FETCH_CALLBACK fetch_callback,
     CACHETABLE_PARTIAL_FETCH_REQUIRED_CALLBACK pf_req_callback,
@@ -378,7 +377,6 @@ int toku_cachetable_get_and_pin (
     CACHEKEY key, 
     uint32_t fullhash, 
     void**value, 
-    long *sizep,
     CACHETABLE_WRITE_CALLBACK write_callback,
     CACHETABLE_FETCH_CALLBACK fetch_callback, 
     CACHETABLE_PARTIAL_FETCH_REQUIRED_CALLBACK pf_req_callback,
@@ -412,7 +410,6 @@ int toku_cachetable_get_and_pin_nonblocking (
     CACHEKEY key,
     uint32_t fullhash,
     void**value,
-    long *sizep,
     CACHETABLE_WRITE_CALLBACK write_callback,
     CACHETABLE_FETCH_CALLBACK fetch_callback,
     CACHETABLE_PARTIAL_FETCH_REQUIRED_CALLBACK pf_req_callback,
@@ -431,6 +428,11 @@ int toku_cachetable_maybe_get_and_pin (CACHEFILE, CACHEKEY, uint32_t /*fullhash*
 
 int toku_cachetable_maybe_get_and_pin_clean (CACHEFILE, CACHEKEY, uint32_t /*fullhash*/, pair_lock_type, void**);
 // Effect: Like maybe get and pin, but may pin a clean pair.
+
+int toku_cachetable_get_attr(CACHEFILE, CACHEKEY, uint32_t /*fullhash*/, PAIR_ATTR *);
+// Effect: get the attributes for cachekey
+// Returns: 0 if success, non-zero if cachekey is not cached
+// Notes: this function exists for tests
 
 int toku_cachetable_unpin(CACHEFILE, PAIR, enum cachetable_dirty dirty, PAIR_ATTR size);
 // Effect: Unpin a memory object

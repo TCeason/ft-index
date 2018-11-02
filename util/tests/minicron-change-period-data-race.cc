@@ -5,7 +5,7 @@
 This file is part of PerconaFT.
 
 
-Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
+Copyright (c) 2018, Percona and/or its affiliates. All rights reserved.
 
     PerconaFT is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License, version 2,
@@ -34,35 +34,33 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
     along with PerconaFT.  If not, see <http://www.gnu.org/licenses/>.
 ======= */
 
-#ident "Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved."
+#ident "Copyright (c) 2018, Percona and/or its affiliates. All rights reserved."
 
+#include <toku_portability.h>
 #include "test.h"
+#include "util/minicron.h"
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
-static void
-cachetable_test (void) {
-  const int test_limit = 12;
-  int r;
-  CACHETABLE ct;
-  toku_cachetable_create(&ct, test_limit, ZERO_LSN, nullptr);
-  const char *fname1 = TOKU_TEST_FILENAME;
-  unlink(fname1);
-  CACHEFILE f1;
-  r = toku_cachetable_openf(&f1, ct, fname1, O_RDWR|O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO); assert(r == 0);
+// The thread sanitizer detected a data race in the minicron in a test unrelated to the minicron.
+// This test reproduces the data race in a much smaller test which merely runs minicron tasks
+// while changing the minicron period in an unrelated thread.
 
-  void* v1;
-  CACHETABLE_WRITE_CALLBACK wc = def_write_callback(NULL);
-  r = toku_cachetable_get_and_pin(f1, make_blocknum(1), 1, &v1, wc, def_fetch, def_pf_req_callback, def_pf_callback, true, NULL);
-  r = toku_test_cachetable_unpin(f1, make_blocknum(1), 1, CACHETABLE_DIRTY, make_pair_attr(8));
-  toku_cachetable_verify(ct);
-  toku_cachefile_close(&f1, false, ZERO_LSN);
-  toku_cachetable_close(&ct);
-
-
+static int do_nothing(void *UU(v)) {
+    return 0;
 }
 
-int
-test_main(int argc, const char *argv[]) {
-  default_parse_args(argc, argv);
-  cachetable_test();
-  return 0;
+int test_main (int argc, const char *argv[]) {
+    default_parse_args(argc,argv);
+
+    minicron m = {};
+    int r = toku_minicron_setup(&m, 1, do_nothing, nullptr);
+    assert(r == 0);
+    for (int i=0; i<1000; i++) 
+        toku_minicron_change_period(&m, 1);
+    r = toku_minicron_shutdown(&m);
+    assert(r == 0);
+
+    return 0;
 }
